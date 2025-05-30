@@ -7,10 +7,10 @@ import { TestCaseAPI } from './modules/testcase';
 import { TestPlanAPI } from './modules/testplan';
 import { TestRunAPI } from './modules/testrun';
 import { TestExecutionAPI } from './modules/testexecution';
-import { 
-  ProductAPI, 
-  BuildAPI, 
-  ComponentAPI, 
+import {
+  ProductAPI,
+  BuildAPI,
+  ComponentAPI,
   ClassificationAPI,
   CategoryAPI,
   VersionAPI,
@@ -23,10 +23,10 @@ import {
   UserAPI,
   BugAPI
 } from './modules/management';
-import { 
-  AttachmentAPI, 
-  MarkdownAPI, 
-  KiwiUtilsAPI 
+import {
+  AttachmentAPI,
+  MarkdownAPI,
+  KiwiUtilsAPI
 } from './modules/utilities';
 
 /**

@@ -1,13 +1,15 @@
-import * as xmlrpc from 'xmlrpc';
+import axios from 'axios';
 import { KiwiConfig } from './types';
+import { AxiosXmlRpcClient } from './axios-xmlrpc-client';
 
 /**
  * Base XML-RPC client for Kiwi TCMS
  */
 export class KiwiClient {
-  private client: xmlrpc.Client;
+  private client?: AxiosXmlRpcClient;
   private config: KiwiConfig;
   private sessionId?: string;
+  private cfAuthCookie?: string;
 
   constructor(config: KiwiConfig) {
     this.config = {
@@ -15,31 +17,86 @@ export class KiwiClient {
       ...config,
     };
 
+    // We'll initialize the client after getting CF auth if needed
+  }
+
+  /**
+   * Get Cloudflare Access authorization cookie using axios
+   */
+  private async getCloudflareAuthCookie(): Promise<string | undefined> {
+    if (!this.config.cloudflareClientId || !this.config.cloudflareClientSecret) {
+      return undefined;
+    }
+
+    try {
+      console.log('🔐 Getting Cloudflare Access authorization cookie...');
+
+      const url = new URL(this.config.baseUrl);
+      const testUrl = `${url.protocol}//${url.hostname}${url.pathname || '/'}`;
+
+      const response = await axios.get(testUrl, {
+        headers: {
+          'CF-Access-Client-Id': this.config.cloudflareClientId,
+          'CF-Access-Client-Secret': this.config.cloudflareClientSecret,
+          'User-Agent': 'Node.js Kiwi TCMS Client',
+        },
+        timeout: this.config.timeout,
+        maxRedirects: 10, // axios handles redirects automatically
+        validateStatus: () => true, // Accept any status code
+      });
+
+      console.log(`📊 Cloudflare Auth Response: ${response.status} ${response.statusText}`);
+
+      // Extract CF_Authorization cookie
+      const cookies = response.headers['set-cookie'];
+      if (cookies) {
+        for (const cookie of cookies) {
+          if (cookie.startsWith('CF_Authorization=')) {
+            const cfAuth = cookie.split(';')[0]; // Get just the CF_Authorization=value part
+            console.log('✅ Got Cloudflare Authorization cookie');
+            return cfAuth;
+          }
+        }
+      }
+
+      // Also check if we're already authenticated (no cookie needed)
+      if (response.status === 200) {
+        console.log('✅ Cloudflare Access already authenticated (no cookie needed)');
+        return 'authenticated';
+      }
+
+      console.log('⚠️  No CF_Authorization cookie found in response');
+      console.log('Response headers:', response.headers);
+      return undefined;
+
+    } catch (error) {
+      console.error('❌ Failed to get Cloudflare auth cookie:', (error as Error).message);
+      return undefined;
+    }
+  }
+
+  /**
+   * Initialize the XML-RPC client with proper authentication
+   */
+  private async initializeClient(): Promise<void> {
+    if (this.client) {
+      return; // Already initialized
+    }
+
+    // Get Cloudflare auth cookie if needed
+    if (this.config.cloudflareClientId && this.config.cloudflareClientSecret) {
+      this.cfAuthCookie = await this.getCloudflareAuthCookie();
+    }
+
     // Parse URL to get host, port, and path
     const url = new URL(this.config.baseUrl);
-    const isSecure = url.protocol === 'https:';
-    const port = url.port ? parseInt(url.port) : (isSecure ? 443 : 80);
-    
-    // Handle different possible XML-RPC endpoints
-    let path = url.pathname;
-    if (path.endsWith('/xml-rpc/')) {
-      path = '/xml-rpc'; // Remove trailing slash to avoid redirects
-    } else if (path.endsWith('/xml-rpc')) {
-      path = '/xml-rpc';
-    } else if (path === '/' || path === '') {
-      path = '/xml-rpc'; // Default to /xml-rpc without trailing slash
-    } else {
-      path = `${path.replace(/\/$/, '')}/xml-rpc`;
-    }
 
     // Debug logging
     console.log(`🔧 XML-RPC Client Configuration:`);
-    console.log(`   Base URL: ${config.baseUrl}`);
+    console.log(`   Base URL: ${this.config.baseUrl}`);
     console.log(`   Host: ${url.hostname}`);
-    console.log(`   Port: ${port}`);
-    console.log(`   Path: ${path}`);
-    console.log(`   Secure: ${isSecure}`);
-    console.log(`   Full endpoint: ${url.protocol}//${url.hostname}:${port}${path}`);
+    console.log(`   Protocol: ${url.protocol}`);
+    console.log(`   Path: ${url.pathname}`);
 
     // Prepare headers
     const headers: { [key: string]: string } = {
@@ -47,74 +104,64 @@ export class KiwiClient {
       ...this.config.headers,
     };
 
-    // Add Cloudflare Access credentials if provided
-    if (this.config.cloudflareClientId && this.config.cloudflareClientSecret) {
+    // Add Cloudflare Access credentials if provided and no cookie obtained
+    if (this.config.cloudflareClientId && this.config.cloudflareClientSecret && !this.cfAuthCookie) {
       headers['CF-Access-Client-Id'] = this.config.cloudflareClientId;
       headers['CF-Access-Client-Secret'] = this.config.cloudflareClientSecret;
-      console.log(`   Cloudflare Access: Enabled`);
+      console.log(`   Cloudflare Access: Using headers`);
+    } else if (this.cfAuthCookie && this.cfAuthCookie !== 'authenticated') {
+      headers['Cookie'] = this.cfAuthCookie;
+      console.log(`   Cloudflare Access: Using cookie`);
     } else {
       console.log(`   Cloudflare Access: Disabled`);
     }
 
     console.log(`   Headers:`, Object.keys(headers));
 
-    // Create client configuration
-    const clientConfig: any = {
-      host: url.hostname,
-      path: path,
-      parser: xmlrpc.dateFormatter.iso8601,
+    // Create our custom AxiosXmlRpcClient
+    this.client = new AxiosXmlRpcClient({
+      url: this.config.baseUrl,
       timeout: this.config.timeout,
       headers: headers,
-    };
+    });
 
-    // Only set port if it's not the default for the protocol
-    if ((isSecure && port !== 443) || (!isSecure && port !== 80)) {
-      clientConfig.port = port;
-    }
-
-    // Set secure connection for HTTPS
-    if (isSecure) {
-      clientConfig.isSecure = true;
-    }
-
-    console.log(`   Final client config:`, clientConfig);
-
-    this.client = xmlrpc.createClient(clientConfig);
+    console.log(`✅ AxiosXmlRpcClient initialized successfully`);
   }
 
   /**
    * Make an XML-RPC method call
    */
   async call<T = any>(method: string, params: any[] = []): Promise<T> {
-    return new Promise((resolve, reject) => {
-      this.client.methodCall(method, params, (error: any, value: any) => {
-        if (error) {
-          // Enhanced error reporting
-          let errorMessage = `XML-RPC Error: ${error.message}`;
-          
-          if (error.body) {
-            console.error('Response body that caused the error:');
-            console.error(error.body.substring(0, 500) + '...');
-            
-            if (error.body.includes('<title>') || error.body.includes('<html>')) {
-              errorMessage += '\n\nReceived HTML response instead of XML-RPC. This usually means:';
-              errorMessage += '\n1. Wrong endpoint URL';
-              errorMessage += '\n2. Authentication/authorization failure';
-              errorMessage += '\n3. Cloudflare Access blocking the request';
-              errorMessage += '\n4. Server returning error page instead of XML-RPC response';
-            }
-          }
-          
-          if (error.res) {
-            errorMessage += `\nHTTP Status: ${error.res.statusCode}`;
-          }
-          
-          reject(new Error(errorMessage));
-        } else {
-          resolve(value);
+    // Ensure client is initialized before making calls
+    await this.initializeClient();
+
+    if (!this.client) {
+      throw new Error('Failed to initialize XML-RPC client');
+    }
+
+    try {
+      const result = await this.client.methodCall(method, params);
+      return result as T;
+    } catch (error: any) {
+      // Enhanced error reporting
+      let errorMessage = `XML-RPC Error: ${error.message}`;
+
+      console.error('\n🔍 Debugging XML-RPC Call:');
+      console.error(`   Method: ${method}`);
+      console.error(`   Params: ${JSON.stringify(params)}`);
+      console.error(`   Error: ${error.message}`);
+
+      if (error.response) {
+        console.error(`   HTTP Status: ${error.response.status} ${error.response.statusText}`);
+        if (error.response.headers) {
+          console.error('   Response Headers:', error.response.headers);
         }
-      });
-    });
+      }
+
+      console.error('\n' + '='.repeat(60));
+
+      throw new Error(errorMessage);
+    }
   }
 
   /**
@@ -155,6 +202,7 @@ export class KiwiClient {
 
   /**
    * Make an authenticated XML-RPC call
+   * Note: Kiwi TCMS uses session cookies for authentication, not session ID parameters
    */
   async authenticatedCall<T = any>(
     method: string, 
@@ -164,19 +212,17 @@ export class KiwiClient {
       await this.login();
     }
 
-    // Add session ID as first parameter for authenticated calls
-    const authParams = [this.sessionId, ...params];
-    
+    // Don't pass session ID as parameter - Kiwi TCMS uses session cookies
     try {
-      return await this.call<T>(method, authParams);
+      return await this.call<T>(method, params);
     } catch (error) {
       // If authentication error, try to re-login once
       if ((error as Error).message.includes('Authentication') || 
           (error as Error).message.includes('Session')) {
         this.sessionId = undefined;
         await this.login();
-        const retryParams = [this.sessionId, ...params];
-        return await this.call<T>(method, retryParams);
+        // Retry with original params (no session ID)
+        return await this.call<T>(method, params);
       }
       throw error;
     }
@@ -204,11 +250,19 @@ export class KiwiClient {
   }
 
   /**
-   * Get server version information
+   * Test connectivity to the server
    */
+  async testConnection(): Promise<string[]> {
+    try {
+      const methods = await this.call<string[]>('system.listMethods');
+      return methods;
+    } catch (error) {
+      throw new Error(`Failed to connect to Kiwi TCMS server: ${(error as Error).message}`);
+    }
+  }
+
   async getVersion(): Promise<string> {
     try {
-      // According to Kiwi TCMS docs, this should be the correct method
       return await this.call<string>('Kiwi.version');
     } catch (error) {
       throw new Error(`Failed to get Kiwi TCMS version: ${(error as Error).message}`);

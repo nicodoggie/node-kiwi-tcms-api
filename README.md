@@ -1,5 +1,7 @@
 # Node.js Kiwi TCMS API Wrapper
 
+THIS WAS VIBE-CODED! I just needed something fast. USE AT YOUR OWN RISK!
+
 A comprehensive Node.js/TypeScript wrapper for the [Kiwi TCMS](https://kiwitcms.org/) 
 XML-RPC API. This library provides a modern, type-safe interface for interacting 
 with Kiwi TCMS test management system.
