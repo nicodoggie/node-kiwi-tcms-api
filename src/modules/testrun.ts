@@ -2,12 +2,12 @@ import { KiwiClient } from '../client';
 import { 
   TestRun, 
   TestRunFilter,
+  TestRunFilterOptions,
+  TestRunWithPermalinks,
+  FilterOutputOptions,
   TestCase,
   TestExecution,
-  Property,
-  Attachment,
-  Tag,
-  User
+  Tag
 } from '../types';
 
 /**
@@ -29,11 +29,34 @@ export class TestRunAPI {
   /**
    * Filter test runs
    */
-  async filter(query: TestRunFilter = {}): Promise<TestRun[]> {
-    return await this.client.authenticatedCall<TestRun[]>(
+  async filter(query?: TestRunFilter): Promise<TestRun[]>;
+  /**
+   * Filter test runs with output options
+   */
+  async filter(query: TestRunFilter | undefined, options: FilterOutputOptions): Promise<TestRun[] | TestRunWithPermalinks[]>;
+  async filter(query: TestRunFilter = {}, options?: FilterOutputOptions): Promise<TestRun[] | TestRunWithPermalinks[]> {
+    const testRuns = await this.client.authenticatedCall<TestRun[]>(
       'TestRun.filter', 
       [query]
     );
+
+    if (options?.includePermalinks) {
+      // Get URL API instance from the main client
+      const urlApi = this.getUrlApi();
+      return urlApi.injectPermalinksArray('run', testRuns, 'summary');
+    }
+
+    return testRuns;
+  }
+
+  /**
+   * Get the URL API instance for permalink injection
+   * @private
+   */
+  private getUrlApi() {
+    // Import here to avoid circular dependencies
+    const { UrlAPI } = require('./utilities');
+    return new UrlAPI(this.client);
   }
 
   /**
@@ -47,13 +70,6 @@ export class TestRunAPI {
       'TestRun.update', 
       [testRunId, updateData]
     );
-  }
-
-  /**
-   * Remove/delete a test run
-   */
-  async remove(testRunId: number): Promise<void> {
-    await this.client.authenticatedCall('TestRun.remove', [testRunId]);
   }
 
   /**
@@ -103,63 +119,6 @@ export class TestRunAPI {
     await this.client.authenticatedCall(
       'TestRun.remove_tag', 
       [testRunId, tag]
-    );
-  }
-
-  /**
-   * Add an attachment to test run
-   */
-  async addAttachment(
-    testRunId: number, 
-    filename: string, 
-    b64content: string
-  ): Promise<Attachment> {
-    return await this.client.authenticatedCall<Attachment>(
-      'TestRun.add_attachment', 
-      [testRunId, filename, b64content]
-    );
-  }
-
-  /**
-   * Add CC (carbon copy) user to test run
-   */
-  async addCC(testRunId: number, userId: number): Promise<User> {
-    return await this.client.authenticatedCall<User>(
-      'TestRun.add_cc', 
-      [testRunId, userId]
-    );
-  }
-
-  /**
-   * Remove CC user from test run
-   */
-  async removeCC(testRunId: number, userId: number): Promise<void> {
-    await this.client.authenticatedCall(
-      'TestRun.remove_cc', 
-      [testRunId, userId]
-    );
-  }
-
-  /**
-   * Get properties of test run
-   */
-  async properties(testRunId: number): Promise<Property[]> {
-    return await this.client.authenticatedCall<Property[]>(
-      'TestRun.properties', 
-      [testRunId]
-    );
-  }
-
-  /**
-   * Annotate test executions with properties
-   */
-  async annotateExecutionsWithProperties(
-    testRunId: number, 
-    executions: TestExecution[]
-  ): Promise<TestExecution[]> {
-    return await this.client.authenticatedCall<TestExecution[]>(
-      'TestRun.annotate_executions_with_properties', 
-      [testRunId, executions]
     );
   }
 } 

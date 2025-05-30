@@ -1,3 +1,6 @@
+const { config } = require('dotenv');
+config({ path: '.env' });
+
 const { KiwiTCMS } = require('../dist/index');
 
 async function basicUsageExample() {
@@ -6,9 +9,9 @@ async function basicUsageExample() {
 
     // Initialize client (without Cloudflare for now)
     const kiwi = new KiwiTCMS({
-      baseUrl: 'https://kiwi.splitmedialabs.com/xml-rpc/',
-      username: 'username',    // Replace with your username
-      password: 'password',    // Replace with your password
+      baseUrl: process.env.KIWI_BASE_URL,
+      username: process.env.KIWI_USERNAME,    // Replace with your username
+      password: process.env.KIWI_PASSWORD,    // Replace with your password
     });
 
     // Test basic connectivity
@@ -16,10 +19,39 @@ async function basicUsageExample() {
     const methods = await kiwi.client.testConnection();
     console.log(`✅ Connected! Found ${methods.length} available methods\n`);
 
+    console.log(methods);
+    
     // Test authentication
     console.log('🔐 Testing authentication...');
     const sessionId = await kiwi.client.login();
     console.log(`✅ Authenticated! Session ID: ${sessionId}\n`);
+
+    // Test list products
+    console.log('🧪 Fetching products...');
+    const products = await kiwi.product.filter({});
+    console.log(`📋 Found ${products.length} products`);
+    console.log(products);
+
+    // Test product filter
+    console.log('🧪 Filtering products...');
+    const filteredProducts = await kiwi.product.filter({
+      name: 'VCam.ai',
+    },
+    {
+      includePermalinks: true
+    });
+    console.log(`📋 Found ${filteredProducts.length} products`);
+    console.log(JSON.stringify(filteredProducts, null, 2));
+    
+    // Test fetch test plans by product
+    console.log('🧪 Fetching test plans by product...');
+    const vcamTestPlans = await kiwi.testPlan.filter({
+      product_id: filteredProducts[0].id
+    }, {
+      includePermalinks: true
+    });
+    console.log(`📋 Found ${vcamTestPlans.length} test plans`);
+    console.log(JSON.stringify(vcamTestPlans, null, 2));
 
     // Test fetching test cases
     console.log('🧪 Fetching test cases...');
@@ -40,9 +72,10 @@ async function basicUsageExample() {
     
     if (testPlans.length > 0) {
       console.log('\n📋 First test plan:');
-      console.log(`   ID: ${testPlans[0].plan_id}`);
+      console.log(`   ID: ${testPlans[0].id}`);
       console.log(`   Name: ${testPlans[0].name}`);
       console.log(`   Type: ${testPlans[0].type_name || testPlans[0].type}`);
+      console.log(`   Parent: ${testPlans[0].parent_id || testPlans[0].parent}`);
     }
 
     // Clean logout

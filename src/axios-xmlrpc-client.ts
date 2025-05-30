@@ -197,8 +197,40 @@ export class AxiosXmlRpcClient {
       return result;
     }
 
-    // If no specific type found, return as-is or as string
-    return typeof valueObj === 'string' ? valueObj : String(valueObj);
+    // Handle XML-RPC nil values - convert to JavaScript null
+    if (valueObj.nil !== undefined) {
+      return null;
+    }
+
+    // Handle text nodes or direct values - preserve objects when possible
+    if (typeof valueObj === 'string') {
+      return valueObj;
+    }
+
+    // If it's an object but not a recognized XML-RPC type, check if it's a direct value
+    // This handles cases where xml2js might parse values differently
+    if (typeof valueObj === 'object' && valueObj !== null) {
+      // Check if this is a text node (common in xml2js output)
+      if ('_' in valueObj && Object.keys(valueObj).length === 1) {
+        return valueObj._;
+      }
+
+      // Check if this is an XML-RPC nil value (alternative representation)
+      if ('nil' in valueObj) {
+        return null;
+      }
+
+      // If it has multiple properties or no special structure, treat as a complex object
+      // Recursively process all properties to handle nested structures
+      const result: any = {};
+      for (const [key, value] of Object.entries(valueObj)) {
+        result[key] = this.parseXmlRpcValue(value);
+      }
+      return result;
+    }
+
+    // For any other types (number, boolean, etc), return as-is
+    return valueObj;
   }
 
   private escapeXml(str: string): string {

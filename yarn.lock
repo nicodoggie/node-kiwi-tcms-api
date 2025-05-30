@@ -766,6 +766,29 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@nicodoggie/node-kiwi-tcms-api@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "@nicodoggie/node-kiwi-tcms-api@workspace:."
+  dependencies:
+    "@types/jest": "npm:^29.5.0"
+    "@types/node": "npm:^20.10.0"
+    "@types/xml2js": "npm:^0.4.14"
+    "@typescript-eslint/eslint-plugin": "npm:^6.0.0"
+    "@typescript-eslint/parser": "npm:^6.0.0"
+    axios: "npm:^1.6.0"
+    axios-cookiejar-support: "npm:^6.0.2"
+    dotenv: "npm:^16.5.0"
+    eslint: "npm:^8.50.0"
+    github-slugger: "npm:^2.0.0"
+    jest: "npm:^29.7.0"
+    tough-cookie: "npm:^5.1.2"
+    ts-jest: "npm:^29.1.0"
+    typescript: "npm:^5.3.0"
+    xml2js: "npm:^0.6.2"
+    xmlrpc: "npm:^1.3.2"
+  languageName: unknown
+  linkType: soft
+
 "@nodelib/fs.scandir@npm:2.1.5":
   version: 2.1.5
   resolution: "@nodelib/fs.scandir@npm:2.1.5"
@@ -1704,6 +1727,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"dotenv@npm:^16.5.0":
+  version: 16.5.0
+  resolution: "dotenv@npm:16.5.0"
+  checksum: 10c0/5bc94c919fbd955bf0ba44d33922a1e93d1078e64a1db5c30faeded1d996e7a83c55332cb8ea4fae5a9ca4d0be44cbceb95c5811e70f9f095298df09d1997dd9
+  languageName: node
+  linkType: hard
+
 "dunder-proto@npm:^1.0.1":
   version: 1.0.1
   resolution: "dunder-proto@npm:1.0.1"
@@ -2267,6 +2297,13 @@ __metadata:
   version: 6.0.1
   resolution: "get-stream@npm:6.0.1"
   checksum: 10c0/49825d57d3fd6964228e6200a58169464b8e8970489b3acdc24906c782fb7f01f9f56f8e6653c4a50713771d6658f7cfe051e5eb8c12e334138c9c918b296341
+  languageName: node
+  linkType: hard
+
+"github-slugger@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "github-slugger@npm:2.0.0"
+  checksum: 10c0/21b912b6b1e48f1e5a50b2292b48df0ff6abeeb0691b161b3d93d84f4ae6b1acd6ae23702e914af7ea5d441c096453cf0f621b72d57893946618d21dd1a1c486
   languageName: node
   linkType: hard
 
@@ -3578,27 +3615,6 @@ __metadata:
   checksum: 10c0/a6a4d8369e2f2720e9c645255ffde909c0fbd41c92ea92a5607fc17055955daac99c1ff589d421eee12a0d24e99f7bfc2aabfeb1a4c14742f6c099a51863f31a
   languageName: node
   linkType: hard
-
-"node-kiwi-tcms@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "node-kiwi-tcms@workspace:."
-  dependencies:
-    "@types/jest": "npm:^29.5.0"
-    "@types/node": "npm:^20.10.0"
-    "@types/xml2js": "npm:^0.4.14"
-    "@typescript-eslint/eslint-plugin": "npm:^6.0.0"
-    "@typescript-eslint/parser": "npm:^6.0.0"
-    axios: "npm:^1.6.0"
-    axios-cookiejar-support: "npm:^6.0.2"
-    eslint: "npm:^8.50.0"
-    jest: "npm:^29.7.0"
-    tough-cookie: "npm:^5.1.2"
-    ts-jest: "npm:^29.1.0"
-    typescript: "npm:^5.3.0"
-    xml2js: "npm:^0.6.2"
-    xmlrpc: "npm:^1.3.2"
-  languageName: unknown
-  linkType: soft
 
 "node-releases@npm:^2.0.19":
   version: 2.0.19

@@ -26,7 +26,8 @@ import {
 import {
   AttachmentAPI,
   MarkdownAPI,
-  KiwiUtilsAPI
+  KiwiUtilsAPI,
+  UrlAPI
 } from './modules/utilities';
 
 /**
@@ -87,6 +88,7 @@ export class KiwiTCMS {
   public readonly attachment: AttachmentAPI;
   public readonly markdown: MarkdownAPI;
   public readonly utils: KiwiUtilsAPI;
+  public readonly url: UrlAPI;
 
   constructor(config: KiwiConfig) {
     this.client = new KiwiClient(config);
@@ -118,6 +120,7 @@ export class KiwiTCMS {
     this.attachment = new AttachmentAPI(this.client);
     this.markdown = new MarkdownAPI(this.client);
     this.utils = new KiwiUtilsAPI(this.client);
+    this.url = new UrlAPI(this.client);
   }
 
   /**

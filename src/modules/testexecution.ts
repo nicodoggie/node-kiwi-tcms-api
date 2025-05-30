@@ -2,8 +2,7 @@ import { KiwiClient } from '../client';
 import { 
   TestExecution, 
   TestExecutionFilter,
-  Comment,
-  Property
+  Comment
 } from '../types';
 
 /**
@@ -36,29 +35,12 @@ export class TestExecutionAPI {
   }
 
   /**
-   * Remove/delete a test execution
-   */
-  async remove(executionId: number): Promise<void> {
-    await this.client.authenticatedCall('TestExecution.remove', [executionId]);
-  }
-
-  /**
    * Add a comment to test execution
    */
   async addComment(executionId: number, comment: string): Promise<Comment> {
     return await this.client.authenticatedCall<Comment>(
       'TestExecution.add_comment', 
       [executionId, comment]
-    );
-  }
-
-  /**
-   * Get comments for test execution
-   */
-  async getComments(executionId: number): Promise<Comment[]> {
-    return await this.client.authenticatedCall<Comment[]>(
-      'TestExecution.get_comments', 
-      [executionId]
     );
   }
 
@@ -88,10 +70,10 @@ export class TestExecutionAPI {
   /**
    * Get links for test execution
    */
-  async getLinks(executionId: number): Promise<any[]> {
+  async getLinks(query: any = {}): Promise<any[]> {
     return await this.client.authenticatedCall<any[]>(
       'TestExecution.get_links', 
-      [executionId]
+      [query]
     );
   }
 
@@ -102,26 +84,6 @@ export class TestExecutionAPI {
     await this.client.authenticatedCall(
       'TestExecution.remove_link', 
       [executionId, linkId]
-    );
-  }
-
-  /**
-   * Get properties of test execution
-   */
-  async properties(executionId: number): Promise<Property[]> {
-    return await this.client.authenticatedCall<Property[]>(
-      'TestExecution.properties', 
-      [executionId]
-    );
-  }
-
-  /**
-   * Get test execution history
-   */
-  async history(executionId: number): Promise<any[]> {
-    return await this.client.authenticatedCall<any[]>(
-      'TestExecution.history', 
-      [executionId]
     );
   }
 } 

@@ -111,10 +111,19 @@ export interface TestPlan {
   create_date: string;
   is_active: boolean;
   extra_link: string;
-  product_version_id: number;
   author_id: number;
+  author: string;
+  parent_id: number | null;
+  parent: string | null;
+  product_id: number;
+  product: string;
+  product_version_id: number;
+  product_version: string;
   type_id: number;
-  parent_id?: number;
+  type: string;
+  case: any; // Complex object structure
+  tag: any; // Complex object structure
+  default_product_version: string;
 }
 
 export interface PlanType {
@@ -266,4 +275,47 @@ export interface PaginatedResponse<T> {
   next?: string;
   previous?: string;
   results: T[];
+}
+
+// Extended types with permalinks
+export interface TestCaseWithPermalinks extends TestCase {
+  permalink: string;
+  shortLink: string;
+  slug: string;
+}
+
+export interface TestPlanWithPermalinks extends TestPlan {
+  permalink: string;
+  shortLink: string;
+  slug: string;
+}
+
+export interface TestRunWithPermalinks extends TestRun {
+  permalink: string;
+  shortLink: string;
+  slug: string;
+}
+
+export interface BugWithPermalinks extends Bug {
+  permalink: string;
+  shortLink: string;
+  slug: string;
+}
+
+// Enhanced filter interfaces with URL injection options
+export interface TestCaseFilterOptions extends FilterOptions {
+  includePermalinks?: boolean;
+}
+
+export interface TestPlanFilterOptions extends FilterOptions {
+  includePermalinks?: boolean;
+}
+
+export interface TestRunFilterOptions extends FilterOptions {
+  includePermalinks?: boolean;
+}
+
+// Filter output options for controlling return format
+export interface FilterOutputOptions {
+  includePermalinks?: boolean;
 } 

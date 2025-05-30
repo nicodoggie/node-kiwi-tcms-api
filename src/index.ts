@@ -16,6 +16,18 @@ export { KiwiClient } from './client';
 // Type definitions
 export * from './types';
 
+// Extended types with permalinks
+export type {
+  TestCaseWithPermalinks,
+  TestPlanWithPermalinks,
+  TestRunWithPermalinks,
+  BugWithPermalinks,
+  TestCaseFilterOptions,
+  TestPlanFilterOptions,
+  TestRunFilterOptions,
+  FilterOutputOptions
+} from './types';
+
 // API modules
 export { AuthAPI } from './modules/auth';
 export { TestCaseAPI } from './modules/testcase';
@@ -41,7 +53,8 @@ export {
 export {
   AttachmentAPI,
   MarkdownAPI,
-  KiwiUtilsAPI
+  KiwiUtilsAPI,
+  UrlAPI
 } from './modules/utilities';
 
 // Default export

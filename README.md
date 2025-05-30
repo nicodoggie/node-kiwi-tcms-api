@@ -6,6 +6,46 @@ A comprehensive Node.js/TypeScript wrapper for the [Kiwi TCMS](https://kiwitcms.
 XML-RPC API. This library provides a modern, type-safe interface for interacting 
 with Kiwi TCMS test management system.
 
+## ⚠️ Version Compatibility
+
+**Important**: This library supports different Kiwi TCMS versions, but older installations 
+have significantly fewer API methods available. The API has evolved considerably over time.
+
+### Version-Specific Support
+
+**Kiwi TCMS 8.x (Legacy - circa 2020):**
+- ✅ **Basic CRUD**: TestCase, TestExecution, TestRun create/filter/update
+- ✅ **Comments**: addComment, removeComment for TestCase and TestExecution
+- ✅ **Tags**: addTag, removeTag for TestCase and TestRun
+- ✅ **Components**: addComponent, removeComponent for TestCase
+- ✅ **Attachments**: addAttachment, listAttachments for TestCase
+- ✅ **Links**: addLink, getLinks, removeLink for TestExecution
+- ✅ **Test Run Management**: addCase, removeCase, getCases
+- ❌ **Missing**: properties, history, comments (read), notification CC, many other methods
+
+**Kiwi TCMS 10.x+ (Modern):**
+- ✅ All legacy methods plus additional methods like properties, history, etc.
+
+**Kiwi TCMS 14.x+ (Latest):**
+- ✅ Full API coverage with all documented methods
+
+### How to Check Your Version
+
+```typescript
+// Check available methods on your system
+const methods = await kiwi.getClient().call('system.listMethods');
+console.log('Available methods:', methods);
+
+// The length can give you a rough idea:
+// ~50-60 methods = Kiwi TCMS 8.x
+// ~70-80 methods = Kiwi TCMS 10.x  
+// ~90+ methods = Kiwi TCMS 12.x+
+```
+
+**If you're on Kiwi TCMS 8.7 or older**, stick to the basic methods listed above. 
+This library will gracefully handle missing methods, but you should test your specific 
+use case first.
+
 ## Features
 
 - 🚀 **Full API Coverage**: Complete implementation of all Kiwi TCMS RPC methods
@@ -19,15 +59,15 @@ with Kiwi TCMS test management system.
 ## Installation
 
 ```bash
-npm install node-kiwi-tcms
+npm install node-kiwi-tcms-api
 # or
-yarn add node-kiwi-tcms
+yarn add node-kiwi-tcms-api
 ```
 
 ## Quick Start
 
 ```typescript
-import { KiwiTCMS } from 'node-kiwi-tcms';
+import { KiwiTCMS } from 'node-kiwi-tcms-api';
 
 // Initialize the client
 const kiwi = new KiwiTCMS({
@@ -151,31 +191,45 @@ const kiwiWithBoth = new KiwiTCMS({
 #### Test Cases
 
 ```typescript
-// Filter test cases
-const testCases = await kiwi.testCase.filter({
-  summary__contains: 'login'
-});
-
-// Create a test case
+// Create test case  
 const testCase = await kiwi.testCase.create({
-  summary: 'Test user login',
-  text: 'Verify user can log in successfully',
-  case_status_id: 1,
+  summary: 'Test user login functionality',
   category_id: 1,
   priority_id: 1,
+  case_status_id: 2,
   author_id: 1,
   default_tester_id: 1
 });
 
-// Update a test case
-await kiwi.testCase.update(testCase.id, {
-  summary: 'Updated test summary'
+// Filter and search  
+const cases = await kiwi.testCase.filter({
+  category_id: 1,
+  is_automated: false
 });
 
-// Add tags, components, comments
-await kiwi.testCase.addTag(testCase.id, 'smoke-test');
-await kiwi.testCase.addComponent(testCase.id, 1);
-await kiwi.testCase.addComment(testCase.id, 'This is a comment');
+// Update test case
+await kiwi.testCase.update(testCase.id, {
+  summary: 'Updated test case summary',
+  notes: 'Additional notes'
+});
+
+// Manage comments
+await kiwi.testCase.addComment(testCase.id, 'This test needs review');
+await kiwi.testCase.removeComment(testCase.id, commentId);
+
+// Manage tags
+await kiwi.testCase.addTag(testCase.id, 'regression');
+await kiwi.testCase.removeTag(testCase.id, 'obsolete');
+
+// Manage components
+await kiwi.testCase.addComponent(testCase.id, componentId);
+await kiwi.testCase.removeComponent(testCase.id, componentId);
+
+// File attachments
+await kiwi.testCase.addAttachment(testCase.id, 'screenshot.png', base64Content);
+const attachments = await kiwi.testCase.listAttachments(testCase.id);
+// Or use alias
+const attachments2 = await kiwi.testCase.getAttachments(testCase.id);
 ```
 
 #### Test Plans
@@ -219,6 +273,12 @@ const executions = await kiwi.testRun.getCases(run.id);
 #### Test Executions
 
 ```typescript
+// Filter test executions
+const executions = await kiwi.testExecution.filter({
+  case_id: testCase.id,
+  status_id: 1
+});
+
 // Update test execution status
 await kiwi.testExecution.update(execution.id, {
   status_id: 2, // Pass
@@ -226,13 +286,19 @@ await kiwi.testExecution.update(execution.id, {
   stop_date: new Date().toISOString()
 });
 
-// Add comments and links
+// Manage comments
 await kiwi.testExecution.addComment(execution.id, 'Test passed successfully');
+await kiwi.testExecution.removeComment(execution.id, commentId);
+
+// Manage links and references
 await kiwi.testExecution.addLink(execution.id, {
   url: 'https://bug-tracker.com/bug/123',
   name: 'Related Bug',
   is_defect: true
 });
+
+const links = await kiwi.testExecution.getLinks({ execution_id: execution.id });
+await kiwi.testExecution.removeLink(execution.id, linkId);
 ```
 
 ### Management Entities
@@ -256,6 +322,106 @@ const statuses = await kiwi.testCaseStatus.filter();
 ```
 
 ### Advanced Features
+
+#### URL Generation and Permalinks
+
+Generate URLs and slugs for Kiwi TCMS entities:
+
+```typescript
+// Generate permalinks for entities
+const testCaseUrl = kiwi.url.generateTestCaseUrl(123);
+const testPlanUrl = kiwi.url.generateTestPlanUrl(456);
+const testRunUrl = kiwi.url.generateTestRunUrl(789);
+const bugUrl = kiwi.url.generateBugUrl(42);
+
+// Create URL-friendly slugs
+const slug = kiwi.url.createSlug('Test Login with Special Characters!');
+// Result: "test-login-with-special-characters"
+
+// Generate short links with slugs
+const shortLink = kiwi.url.generateShortLink('case', 123, slug);
+// Result: "https://kiwi.example.com/case/123-test-login-with-special-characters"
+
+// Parse existing Kiwi TCMS URLs
+const parsed = kiwi.url.parseKiwiUrl('https://kiwi.example.com/case/123/');
+// Result: { type: 'case', id: 123 }
+```
+
+Real-world usage example:
+
+```typescript
+// Create a test case and generate shareable URLs
+const testCase = await kiwi.testCase.create({
+  summary: 'Test user authentication flow',
+  // ... other properties
+});
+
+// Generate URLs for sharing
+const slug = kiwi.url.createSlug(testCase.summary);
+const permalink = kiwi.url.generateTestCaseUrl(testCase.id);
+const shortLink = kiwi.url.generateShortLink('case', testCase.id, slug);
+
+console.log('Share this test case:', shortLink);
+// Share this test case: https://kiwi.example.com/case/456-test-user-authentication-flow
+```
+
+#### Automatic Permalink Injection
+
+For convenience, you can automatically inject permalinks into objects returned 
+by filter methods using a separate options parameter:
+
+```typescript
+// Basic filter - returns TestCase[]
+const basicCases = await kiwi.testCase.filter({ 
+  is_automated: true 
+});
+
+// Enhanced filter with options - returns TestCaseWithPermalinks[]
+const enhancedCases = await kiwi.testCase.filter({ 
+  is_automated: true 
+}, { 
+  includePermalinks: true 
+});
+
+// Now each test case includes permalink properties
+enhancedCases.forEach(testCase => {
+  console.log('Test case:', testCase.summary);
+  console.log('Permalink:', testCase.permalink);
+  console.log('Short link:', testCase.shortLink);
+  console.log('Slug:', testCase.slug);
+});
+
+// Works with all filter methods
+const testPlans = await kiwi.testPlan.filter({}, { 
+  includePermalinks: true 
+});
+
+const testRuns = await kiwi.testRun.filter({}, { 
+  includePermalinks: true 
+});
+```
+
+Real-world example - Generate a test report with shareable links:
+
+```typescript
+// Get failed test cases with permalinks
+const failedCases = await kiwi.testCase.filter({
+  case_status_id: 3 // Failed status
+}, {
+  includePermalinks: true
+});
+
+// Create a report with shareable links
+const report = failedCases.map(testCase => ({
+  name: testCase.summary,
+  shareableLink: testCase.shortLink,
+  detailsUrl: testCase.permalink,
+  slug: testCase.slug
+}));
+
+// Send report via email, Slack, etc.
+console.log('Failed test cases report:', report);
+```
 
 #### Field Lookups (Django-style)
 

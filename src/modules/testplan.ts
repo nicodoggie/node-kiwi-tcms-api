@@ -2,6 +2,9 @@ import { KiwiClient } from '../client';
 import { 
   TestPlan, 
   TestPlanFilter, 
+  TestPlanFilterOptions,
+  TestPlanWithPermalinks,
+  FilterOutputOptions,
   TestCase,
   Attachment,
   Tag
@@ -26,11 +29,34 @@ export class TestPlanAPI {
   /**
    * Filter test plans
    */
-  async filter(query: TestPlanFilter = {}): Promise<TestPlan[]> {
-    return await this.client.authenticatedCall<TestPlan[]>(
+  async filter(query?: TestPlanFilter): Promise<TestPlan[]>;
+  /**
+   * Filter test plans with output options
+   */
+  async filter(query: TestPlanFilter | undefined, options: FilterOutputOptions): Promise<TestPlan[] | TestPlanWithPermalinks[]>;
+  async filter(query: TestPlanFilter = {}, options?: FilterOutputOptions): Promise<TestPlan[] | TestPlanWithPermalinks[]> {
+    const testPlans = await this.client.authenticatedCall<TestPlan[]>(
       'TestPlan.filter', 
       [query]
     );
+
+    if (options?.includePermalinks) {
+      // Get URL API instance from the main client
+      const urlApi = this.getUrlApi();
+      return urlApi.injectPermalinksArray('plan', testPlans, 'name');
+    }
+
+    return testPlans;
+  }
+
+  /**
+   * Get the URL API instance for permalink injection
+   * @private
+   */
+  private getUrlApi() {
+    // Import here to avoid circular dependencies
+    const { UrlAPI } = require('./utilities');
+    return new UrlAPI(this.client);
   }
 
   /**

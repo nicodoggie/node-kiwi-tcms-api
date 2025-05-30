@@ -309,4 +309,11 @@ export class KiwiClient {
   getHeaders(): { [key: string]: string } | undefined {
     return this.config.headers;
   }
+
+  /**
+   * Get the current configuration
+   */
+  getConfig(): KiwiConfig {
+    return { ...this.config };
+  }
 } 

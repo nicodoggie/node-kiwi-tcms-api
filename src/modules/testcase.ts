@@ -2,8 +2,10 @@ import { KiwiClient } from '../client';
 import { 
   TestCase, 
   TestCaseFilter, 
+  TestCaseFilterOptions,
+  TestCaseWithPermalinks,
+  FilterOutputOptions,
   Comment, 
-  Property, 
   Attachment,
   Tag,
   Component
@@ -28,11 +30,34 @@ export class TestCaseAPI {
   /**
    * Filter test cases
    */
-  async filter(query: TestCaseFilter = {}): Promise<TestCase[]> {
-    return await this.client.authenticatedCall<TestCase[]>(
+  async filter(query?: TestCaseFilter): Promise<TestCase[]>;
+  /**
+   * Filter test cases with output options
+   */
+  async filter(query: TestCaseFilter | undefined, options: FilterOutputOptions): Promise<TestCase[] | TestCaseWithPermalinks[]>;
+  async filter(query: TestCaseFilter = {}, options?: FilterOutputOptions): Promise<TestCase[] | TestCaseWithPermalinks[]> {
+    const testCases = await this.client.authenticatedCall<TestCase[]>(
       'TestCase.filter', 
       [query]
     );
+
+    if (options?.includePermalinks) {
+      // Get URL API instance from the main client
+      const urlApi = this.getUrlApi();
+      return urlApi.injectPermalinksArray('case', testCases, 'summary');
+    }
+
+    return testCases;
+  }
+
+  /**
+   * Get the URL API instance for permalink injection
+   * @private
+   */
+  private getUrlApi() {
+    // Import here to avoid circular dependencies
+    const { UrlAPI } = require('./utilities');
+    return new UrlAPI(this.client);
   }
 
   /**
@@ -66,59 +91,12 @@ export class TestCaseAPI {
   }
 
   /**
-   * Get comments for test case
-   */
-  async comments(testCaseId: number): Promise<Comment[]> {
-    return await this.client.authenticatedCall<Comment[]>(
-      'TestCase.comments', 
-      [testCaseId]
-    );
-  }
-
-  /**
    * Remove a comment from test case
    */
   async removeComment(testCaseId: number, commentId: number): Promise<void> {
     await this.client.authenticatedCall(
       'TestCase.remove_comment', 
       [testCaseId, commentId]
-    );
-  }
-
-  /**
-   * Add a property to test case
-   */
-  async addProperty(
-    testCaseId: number, 
-    name: string, 
-    value: string
-  ): Promise<void> {
-    await this.client.authenticatedCall(
-      'TestCase.add_property', 
-      [testCaseId, name, value]
-    );
-  }
-
-  /**
-   * Get properties of test case
-   */
-  async properties(testCaseId: number): Promise<Property[]> {
-    return await this.client.authenticatedCall<Property[]>(
-      'TestCase.properties', 
-      [testCaseId]
-    );
-  }
-
-  /**
-   * Remove a property from test case
-   */
-  async removeProperty(
-    testCaseId: number, 
-    name: string
-  ): Promise<void> {
-    await this.client.authenticatedCall(
-      'TestCase.remove_property', 
-      [testCaseId, name]
     );
   }
 
@@ -193,55 +171,9 @@ export class TestCaseAPI {
   }
 
   /**
-   * Get test case history
+   * Get attachments for test case (alias for listAttachments method)
    */
-  async history(testCaseId: number): Promise<any[]> {
-    return await this.client.authenticatedCall<any[]>(
-      'TestCase.history', 
-      [testCaseId]
-    );
-  }
-
-  /**
-   * Add notification CC to test case
-   */
-  async addNotificationCC(
-    testCaseId: number, 
-    userIds: number[]
-  ): Promise<void> {
-    await this.client.authenticatedCall(
-      'TestCase.add_notification_cc', 
-      [testCaseId, userIds]
-    );
-  }
-
-  /**
-   * Get notification CC list for test case
-   */
-  async getNotificationCC(testCaseId: number): Promise<number[]> {
-    return await this.client.authenticatedCall<number[]>(
-      'TestCase.get_notification_cc', 
-      [testCaseId]
-    );
-  }
-
-  /**
-   * Remove notification CC from test case
-   */
-  async removeNotificationCC(
-    testCaseId: number, 
-    userIds: number[]
-  ): Promise<void> {
-    await this.client.authenticatedCall(
-      'TestCase.remove_notification_cc', 
-      [testCaseId, userIds]
-    );
-  }
-
-  /**
-   * Get sortkeys for test cases
-   */
-  async sortkeys(): Promise<any> {
-    return await this.client.authenticatedCall('TestCase.sortkeys');
+  async getAttachments(testCaseId: number): Promise<Attachment[]> {
+    return this.listAttachments(testCaseId);
   }
 } 
