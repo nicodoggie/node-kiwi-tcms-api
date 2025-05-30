@@ -1,5 +1,5 @@
 {
-  "name": "@nicodoggie/node-kiwi-tcms",
+  "name": "@nicodoggie/node-kiwi-tcms-api",
   "version": "1.0.0",
   "description": "Vibe-coded Node.js wrapper for Kiwi TCMS XML-RPC API. Use at your own risk.",
   "main": "dist/index.js",
